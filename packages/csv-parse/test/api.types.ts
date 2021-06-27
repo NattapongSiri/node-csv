@@ -319,7 +319,7 @@ describe('API Types', () => {
     
     it('all properties', () => {
       (context: CastingContext) => {
-        const column: number|string = context.column
+        const column: number|symbol|string = context.column
         const empty_lines: number = context.empty_lines
         const header: boolean = context.header
         const index: number = context.index

@@ -6,30 +6,34 @@ import * as stream from "stream";
 
 export = parse;
 
-declare function parse(input: Buffer | string, options?: parse.Options, callback?: parse.Callback): parse.Parser;
-declare function parse(input: Buffer | string, callback?: parse.Callback): parse.Parser;
-declare function parse(options?: parse.Options, callback?: parse.Callback): parse.Parser;
-declare function parse(callback?: parse.Callback): parse.Parser;
+declare function parse<T = any>(input: Buffer | string, options?: parse.Options<T>, callback?: parse.Callback<T>): parse.Parser<T>;
+declare function parse<T = any>(input: Buffer | string, callback?: parse.Callback<T>): parse.Parser<T>;
+declare function parse<T = any>(options?: parse.Options<T>, callback?: parse.Callback<T>): parse.Parser<T>;
+declare function parse<T = any>(callback?: parse.Callback<T>): parse.Parser<T>;
 declare namespace parse {
 
-    type Callback = (err: Error | undefined, records: any | undefined, info: Info) => void;
+    type Callback<T = any> = (err: Error | undefined, records: T[], info: Info) => void;
 
-    interface Parser extends stream.Transform {}
+    interface Parser<T = any> extends stream.Transform {}
 
-    class Parser {
-        constructor(options: Options);
+    class Parser<T = any> implements AsyncIterator<T> {
+        constructor(options: Options<T>);
         
         __push(line: any): any;
         
         __write(chars: any, end: any, callback: any): any;
         
-        readonly options: Options
+        readonly options: Options<T>
         
         readonly info: Info;
+
+        next(): Promise<IteratorResult<T>>;
+
+        [Symbol.asyncIterator](): this;
     }
 
-    interface CastingContext {
-        readonly column: number | string;
+    interface CastingContext<T = any> {
+        readonly column: number | keyof T;
         readonly empty_lines: number;
         readonly error: CsvError;
         readonly header: boolean;
@@ -40,25 +44,25 @@ declare namespace parse {
         readonly invalid_field_length: number;
     }
 
-    type CastingFunction = (value: string, context: CastingContext) => any;
+    type CastingFunction<T = any> = (value: string, context: CastingContext<T>) => any;
 
-    type CastingDateFunction = (value: string, context: CastingContext) => Date;
+    type CastingDateFunction<T = any> = (value: string, context: CastingContext<T>) => Date;
 
-    type ColumnOption = string | undefined | null | false | { name: string };
+    type ColumnOption<T = any> = keyof T | undefined | null | false | { name: keyof T };
 
-    interface Options {
+    interface Options<T = any> {
         /**
          * If true, the parser will attempt to convert read data types to native types.
          * @deprecated Use {@link cast}
          */
-        auto_parse?: boolean | CastingFunction;
-        autoParse?: boolean | CastingFunction;
+        auto_parse?: boolean | CastingFunction<T>;
+        autoParse?: boolean | CastingFunction<T>;
         /**
          * If true, the parser will attempt to convert read data types to dates. It requires the "auto_parse" option.
          * @deprecated Use {@link cast_date}
          */
-        auto_parse_date?: boolean | CastingDateFunction;
-        autoParseDate?: boolean | CastingDateFunction;
+        auto_parse_date?: boolean | CastingDateFunction<T>;
+        autoParseDate?: boolean | CastingDateFunction<T>;
         /**
          * If true, detect and exclude the byte order mark (BOM) from the CSV input if present.
          */
@@ -67,20 +71,20 @@ declare namespace parse {
          * If true, the parser will attempt to convert input string to native types.
          * If a function, receive the value as first argument, a context as second argument and return a new value. More information about the context properties is available below.
          */
-        cast?: boolean | CastingFunction;
+        cast?: boolean | CastingFunction<T>;
         /**
          * If true, the parser will attempt to convert input string to dates.
          * If a function, receive the value as argument and return a new value. It requires the "auto_parse" option. Be careful, it relies on Date.parse.
          */
-        cast_date?: boolean | CastingDateFunction;
-        castDate?: boolean | CastingDateFunction;
+        cast_date?: boolean | CastingDateFunction<T>;
+        castDate?: boolean | CastingDateFunction<T>;
         /**
          * List of fields as an array,
          * a user defined callback accepting the first line and returning the column names or true if autodiscovered in the first CSV line,
          * default to null,
          * affect the result data set in the sense that records will be objects instead of arrays.
          */
-        columns?: ColumnOption[] | boolean | ((record: any) => ColumnOption[]);
+        columns?: ColumnOption<T>[] | boolean | ((record: any) => ColumnOption<T>[]);
         /**
          * Convert values into an array of values when columns are activated and
          * when multiple columns of the same name are found.
@@ -139,8 +143,8 @@ declare namespace parse {
         /**
          * Alter and filter records by executing a user defined function.
          */
-        on_record?: (record: any, context: CastingContext) => any;
-        onRecord?: (record: any, context: CastingContext) => any;
+        on_record?: (record: any, context: CastingContext<T>) => T | void;
+        onRecord?: (record: any, context: CastingContext<T>) => T | void;
         /**
          * Optional character surrounding a field, one character only, defaults to double quotes.
          */

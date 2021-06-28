@@ -3,27 +3,27 @@
 import * as stream from "stream";
 export = stringify
 
-declare function stringify(callback?: stringify.Callback): stringify.Stringifier
-declare function stringify(options: stringify.Options, callback?: stringify.Callback): stringify.Stringifier
-declare function stringify(input: stringify.Input, callback?: stringify.Callback): stringify.Stringifier
-declare function stringify(input: stringify.Input, options?: stringify.Options, callback?: stringify.Callback): stringify.Stringifier
+declare function stringify<I = any>(callback?: stringify.Callback): stringify.Stringifier<I>
+declare function stringify<I = any>(options: stringify.Options<I>, callback?: stringify.Callback): stringify.Stringifier<I>
+declare function stringify<I = any>(input: stringify.Input<I>, callback?: stringify.Callback): stringify.Stringifier<I>
+declare function stringify<I = any>(input: stringify.Input<I>, options?: stringify.Options<I>, callback?: stringify.Callback): stringify.Stringifier<I>
 declare namespace stringify {
     type Callback = (err: Error | undefined, output: string) => void
     type RecordDelimiter = string | Buffer | 'auto' | 'unix' | 'mac' | 'windows' | 'ascii' | 'unicode'
-    type Cast<T> = (value: T, context: CastingContext) => string
-    type PlainObject<T> = Record<string, T>
-    type Input = any[]
-    interface ColumnOption {
-        key: string
+    type Cast<I, T> = (value: T, context: CastingContext<I>) => string
+    type PlainObject<I, T> = Record<keyof I, T>
+    type Input<I> = I[]
+    interface ColumnOption<I = any> {
+        key: keyof I
         header?: string
     }
-    interface CastingContext {
-        readonly column?: number | string;
+    interface CastingContext<I = any> {
+        readonly column?: number | keyof I;
         readonly header: boolean;
         readonly index: number;
         readonly records: number;
     }
-    interface Options {
+    interface Options<I = any> {
         /**
          * Prepend the byte order mark (BOM) to the output stream.
          */
@@ -32,14 +32,14 @@ declare namespace stringify {
          * Key-value object which defines custom cast for certain data types
          */
         cast?: {
-            boolean?: Cast<boolean>
-            date?: Cast<Date>
-            number?: Cast<number>
+            boolean?: Cast<I, boolean>
+            date?: Cast<I, Date>
+            number?: Cast<I, number>
             /**
              * Custom formatter for generic object values
              */
-            object?: Cast<Record<string, any>>
-            string?: Cast<string>
+            object?: Cast<I, Record<keyof(I[keyof I]), any>>
+            string?: Cast<I, string>
         }
         /**
          * List of fields, applied when `transform` returns an object
@@ -49,7 +49,7 @@ declare namespace stringify {
          * can refer to nested properties of the input JSON
          * see the "header" option on how to print columns names on the first line
          */
-        columns?: string[] | PlainObject<string> | ColumnOption[]
+        columns?: (keyof I)[] | PlainObject<I, string> | ColumnOption<I>[]
         /**
          * Set the field delimiter, one character only, defaults to a comma.
          */
@@ -94,8 +94,15 @@ declare namespace stringify {
          */
         record_delimiter?: RecordDelimiter
     }
-    class Stringifier extends stream.Transform {
-        constructor(options: Options)
+    class Stringifier<I = any> extends stream.Transform implements Iterator<string>, Iterable<string> {
+        constructor(options: Options<I>)
         readonly options: Options
+
+        write(chunk: I, encoding?: BufferEncoding, cb?: (error: Error | null | undefined) => void): boolean;
+        write(chunk: I, cb?: (error: Error | null | undefined) => void): boolean;
+
+        next(): IteratorResult<string>
+
+        [Symbol.iterator](): this
     }
 }
